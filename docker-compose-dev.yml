@@ -1,0 +1,60 @@
+services:
+  web:
+    build:
+      context: .
+      target: dev
+    image: cinema:dev
+    container_name: cinema_app_dev
+    environment:
+      APP_ENV: dev
+      DJANGO_SETTINGS_MODULE: cinema.settings
+      DJANGO_DEBUG: "1"
+      CREATE_DEFAULT_USERS: "1"
+      PERF_DISABLE_THROTTLE: ${PERF_DISABLE_THROTTLE:-false}
+    env_file:
+      - .env
+    volumes:
+      - .:/app:delegated
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      # In dev, runserver may be slower to start if migrations/collectstatic are running
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8000/health/ || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-cinema}
+      POSTGRES_USER: ${POSTGRES_USER:-cinema_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cinema_password}
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cinema_user} -d ${POSTGRES_DB:-cinema}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "15433:5432"
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "6380:6379"
+
+volumes:
+  postgres_data_dev:

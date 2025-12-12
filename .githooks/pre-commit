@@ -1,0 +1,66 @@
+#!/bin/bash
+# Git pre-commit hook for Cinema API
+# This hook runs quality checks before each commit
+
+set -e
+
+echo "🔍 Running pre-commit quality checks..."
+echo ""
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Check if Docker containers are running
+if ! docker compose -f docker-compose-dev.yml ps web | grep -q "Up"; then
+    echo -e "${RED}❌ Docker containers not running!${NC}"
+    echo "Run: make run"
+    exit 1
+fi
+
+# 1. Black formatting check
+echo -e "${YELLOW}📝 Checking code formatting (black)...${NC}"
+if ! docker compose -f docker-compose-dev.yml exec -T web black --check . --quiet 2>/dev/null; then
+    echo -e "${RED}❌ Black formatting check failed!${NC}"
+    echo "Run: make format"
+    exit 1
+fi
+echo -e "${GREEN}✓ Black formatting OK${NC}"
+echo ""
+
+# 2. Ruff linting (preferred over flake8)
+echo -e "${YELLOW}🔍 Running ruff linting...${NC}"
+if ! docker compose -f docker-compose-dev.yml exec -T web ruff check . --exit-zero false 2>/dev/null; then
+    echo -e "${RED}❌ Ruff linting failed!${NC}"
+    echo "Run: make lint or fix linting errors before committing"
+    exit 1
+fi
+echo -e "${GREEN}✓ Ruff linting OK${NC}"
+echo ""
+
+# 3. MyPy type checking
+echo -e "${YELLOW}🔎 Running mypy type checking...${NC}"
+if ! docker compose -f docker-compose-dev.yml exec -T web mypy . 2>/dev/null; then
+    echo -e "${RED}❌ MyPy type checking failed!${NC}"
+    echo "Fix type errors before committing"
+    exit 1
+fi
+echo -e "${GREEN}✓ MyPy type checking OK${NC}"
+echo ""
+
+# 4. Tests with coverage
+echo -e "${YELLOW}🧪 Running tests with coverage (minimum 90%)...${NC}"
+if ! docker compose -f docker-compose-dev.yml exec -T web pytest --cov --cov-fail-under=90 --quiet 2>/dev/null; then
+    echo -e "${RED}❌ Tests failed or coverage below 90%!${NC}"
+    echo "Run: make test"
+    exit 1
+fi
+echo -e "${GREEN}✓ Tests passed with coverage ≥ 90%${NC}"
+echo ""
+
+echo -e "${GREEN}✅ All quality checks passed! Proceeding with commit...${NC}"
+echo ""
+
+exit 0

@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Django
+*.log
+/media
+/staticfiles
+*.pot
+
+# Virtual Environment
+.venv
+
+# IDEs
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+.coverage
+htmlcov/
+.tox/
+.pytest_cache/
+.mypy_cache/
+coverage.xml
+*.cover
+
+# Environment
+.env
