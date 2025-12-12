@@ -16,14 +16,14 @@ docker compose exec web pip install types-requests types-redis
 ## 🚀 Quick Start
 
 ```bash
-git clone <repo-url> && cd cinema
+git clone https://github.com/mehdibennis/cinema && cd cinema
 cp .env.example .env  # Edit SECRET_KEY, POSTGRES_*, TMDB_API_KEY as needed
 make run && make migrate && make create_data
 ```
 
 **Access**:
 - [Swagger UI](http://localhost:8000/api/docs/) - interactive API docs ⭐
-- [Admin](http://localhost:8000/admin/) - admin / admin123
+- [Admin](http://localhost:8000/admin/) - admin / admin123 for test purposes
 - [API root](http://localhost:8000/api/)
 
 ---

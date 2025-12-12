@@ -1,7 +1,7 @@
 .PHONY: help run stop restart logs connect connect_db createsuperuser test lint typecheck quality format precommit clean migrate makemigrations import_tmdb shell loadtest cleanup clean-pycache coverage docs install-hooks
 DOCKER_CMD = docker compose -f docker-compose-dev.yml
 BASE_URL ?= http://localhost:8000
-LOADTEST_SCRIPT ?= perf_expert.js
+LOADTEST_SCRIPT ?= perf_test.js
 
 # ==============================================================================
 # DEVELOPMENT
