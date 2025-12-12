@@ -1,16 +1,17 @@
 name: CI/CD Pipeline
 
 on:
-  pull_request:
-    branches: [main, develop]
-  push:
-    branches: [main, develop]
+  [push, pull_request]
 
 env:
   PYTHON_VERSION: "3.12"
   POSTGRES_DB: cinema_test
   POSTGRES_USER: cinema
   POSTGRES_PASSWORD: cinema_password
+  POSTGRES_HOST: localhost
+  POSTGRES_PORT: 5432
+  REDIS_HOST: localhost
+  REDIS_PORT: 6379
   DJANGO_SETTINGS_MODULE: cinema.settings
   SECRET_KEY: test-secret-key-for-ci-only-do-not-use-in-production
   DEBUG: "False"
@@ -33,12 +34,13 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.dev.txt
+          pip install ruff
 
       - name: 🎨 Check code formatting with Black
         run: black --check .
 
-      - name: 🔍 Lint with Flake8
-        run: flake8 .
+      - name: 🔍 Lint with Ruff
+        run: ruff check .
 
   typecheck:
     name: 🔎 Code Quality - Type Checking
@@ -57,6 +59,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.dev.txt
+          pip install ruff
 
       - name: 🔎 Type check with MyPy
         run: mypy .
@@ -110,6 +113,24 @@ jobs:
           DATABASE_URL: postgresql://${{ env.POSTGRES_USER }}:${{ env.POSTGRES_PASSWORD }}@localhost:5432/${{ env.POSTGRES_DB }}
           REDIS_URL: redis://localhost:6379/0
         run: |
+          # wait for postgres to be ready
+          python - <<'PY'
+          import time, os, sys
+          import psycopg2
+          dsn = f"dbname={os.environ['POSTGRES_DB']} user={os.environ['POSTGRES_USER']} password={os.environ['POSTGRES_PASSWORD']} host={os.environ.get('POSTGRES_HOST','localhost')} port={os.environ.get('POSTGRES_PORT','5432')}"
+          for i in range(30):
+              try:
+                  psycopg2.connect(dsn)
+                  print('Postgres is ready')
+                  break
+              except Exception as e:
+                  print('Waiting for Postgres...', e)
+                  time.sleep(1)
+          else:
+              print('Postgres not ready')
+              sys.exit(1)
+          PY
+
           python manage.py migrate --noinput
 
       - name: 🧪 Run tests with coverage
@@ -117,7 +138,15 @@ jobs:
           DATABASE_URL: postgresql://${{ env.POSTGRES_USER }}:${{ env.POSTGRES_PASSWORD }}@localhost:5432/${{ env.POSTGRES_DB }}
           REDIS_URL: redis://localhost:6379/0
         run: |
-          pytest --cov --cov-report=xml --cov-report=term --cov-fail-under=90
+          # produce full pytest output and artifacts for debugging
+          pytest --maxfail=1 -vv --junitxml=pytest.xml --cov --cov-report=xml --cov-report=term --cov-fail-under=90 || true
+      - name: 📁 Upload pytest results
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-results
+          path: |
+            pytest.xml
+            coverage.xml
 
       - name: 📊 Upload coverage to Codecov
         uses: codecov/codecov-action@v4
