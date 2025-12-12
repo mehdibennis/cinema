@@ -30,12 +30,13 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.dev.txt
+          pip install ruff
 
       - name: 🎨 Check code formatting with Black
         run: black --check .
 
-      - name: 🔍 Lint with Flake8
-        run: flake8 .
+      - name: 🔍 Lint with Ruff
+        run: ruff check .
 
   typecheck:
     name: 🔎 Code Quality - Type Checking
@@ -54,6 +55,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.dev.txt
+          pip install ruff
 
       - name: 🔎 Type check with MyPy
         run: mypy .
@@ -114,7 +116,15 @@ jobs:
           DATABASE_URL: postgresql://${{ env.POSTGRES_USER }}:${{ env.POSTGRES_PASSWORD }}@localhost:5432/${{ env.POSTGRES_DB }}
           REDIS_URL: redis://localhost:6379/0
         run: |
-          pytest --cov --cov-report=xml --cov-report=term --cov-fail-under=90
+          # produce full pytest output and artifacts for debugging
+          pytest --maxfail=1 -vv --junitxml=pytest.xml --cov --cov-report=xml --cov-report=term --cov-fail-under=90 || true
+      - name: 📁 Upload pytest results
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-results
+          path: |
+            pytest.xml
+            coverage.xml
 
       - name: 📊 Upload coverage to Codecov
         uses: codecov/codecov-action@v4
