@@ -8,6 +8,10 @@ env:
   POSTGRES_DB: cinema_test
   POSTGRES_USER: cinema
   POSTGRES_PASSWORD: cinema_password
+  POSTGRES_HOST: localhost
+  POSTGRES_PORT: 5432
+  REDIS_HOST: localhost
+  REDIS_PORT: 6379
   DJANGO_SETTINGS_MODULE: cinema.settings
   SECRET_KEY: test-secret-key-for-ci-only-do-not-use-in-production
   DEBUG: "False"
@@ -109,6 +113,24 @@ jobs:
           DATABASE_URL: postgresql://${{ env.POSTGRES_USER }}:${{ env.POSTGRES_PASSWORD }}@localhost:5432/${{ env.POSTGRES_DB }}
           REDIS_URL: redis://localhost:6379/0
         run: |
+          # wait for postgres to be ready
+          python - <<'PY'
+          import time, os, sys
+          import psycopg2
+          dsn = f"dbname={os.environ['POSTGRES_DB']} user={os.environ['POSTGRES_USER']} password={os.environ['POSTGRES_PASSWORD']} host={os.environ.get('POSTGRES_HOST','localhost')} port={os.environ.get('POSTGRES_PORT','5432')}"
+          for i in range(30):
+              try:
+                  psycopg2.connect(dsn)
+                  print('Postgres is ready')
+                  break
+              except Exception as e:
+                  print('Waiting for Postgres...', e)
+                  time.sleep(1)
+          else:
+              print('Postgres not ready')
+              sys.exit(1)
+          PY
+
           python manage.py migrate --noinput
 
       - name: 🧪 Run tests with coverage
