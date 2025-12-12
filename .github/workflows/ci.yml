@@ -1,10 +1,7 @@
 name: CI/CD Pipeline
 
 on:
-  pull_request:
-    branches: [main, develop]
-  push:
-    branches: [main, develop]
+  [push, pull_request]
 
 env:
   PYTHON_VERSION: "3.12"
