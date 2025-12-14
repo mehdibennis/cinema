@@ -17,10 +17,9 @@ CACHE_TIMEOUT = 60 * 15  # 15 minutes
 
 
 class FilmViewSet(viewsets.ModelViewSet):
-    # Optimization: select_related for FK (author) and prefetch_related for Reverse FK (reviews)
+    # Optimization: prefetch_related for M2M (authors) and Reverse FK (reviews)
     queryset = (
-        Film.objects.select_related("author")
-        .prefetch_related("reviews")
+        Film.objects.prefetch_related("authors", "reviews")
         .annotate(avg_rating=Avg("reviews__rating"))
         .order_by("-created_at")
     )

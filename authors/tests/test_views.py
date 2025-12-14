@@ -127,7 +127,8 @@ class TestAuthorViewSet:
 
     def test_delete_author_with_films(self, api_client):
         author = AuthorFactory()
-        FilmFactory(author=author)
+        film = FilmFactory()
+        film.authors.add(author)
         admin = AdminUserFactory()
         api_client.force_authenticate(user=admin)
 

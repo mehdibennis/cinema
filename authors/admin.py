@@ -14,13 +14,12 @@ class AuthorReviewInline(admin.TabularInline):
 class FilmInline(admin.TabularInline):
     from films.models import Film
 
-    model = Film
-    fk_name = "author"
+    model = Film.authors.through
     extra = 0
-    fields = ("title", "release_date", "status", "evaluation")
-    readonly_fields = ("title", "release_date", "status", "evaluation")
+    verbose_name = "Film"
+    verbose_name_plural = "Films"
     can_delete = False
-    show_change_link = True
+    show_change_link = False
 
     def has_add_permission(self, request, obj=None):
         return False

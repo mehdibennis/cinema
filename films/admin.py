@@ -23,7 +23,7 @@ class FilmAdmin(admin.ModelAdmin):
     )
     list_filter = ("created_at", "evaluation", "status", "source")
     search_fields = ("title", "description")
-    autocomplete_fields = ("author",)
+    autocomplete_fields = ("authors",)
     inlines = [FilmReviewInline]
     readonly_fields = ("created_at", "updated_at", "poster_preview")
 

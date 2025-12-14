@@ -101,10 +101,11 @@ class TestTMDBServiceImportMovie:
         assert film is not None
         assert film.title == "Imported Movie"
         assert film.tmdb_id == 100
-        assert film.author is not None
-        assert film.author.tmdb_id == 999
-        assert film.author.user.first_name == "Director"
-        assert film.author.user.last_name == "Name"
+        assert film.authors.count() == 1
+        author = film.authors.first()
+        assert author.tmdb_id == 999
+        assert author.user.first_name == "Director"
+        assert author.user.last_name == "Name"
 
     def test_import_movie_missing_data(self):
         """Test import with missing required data."""
