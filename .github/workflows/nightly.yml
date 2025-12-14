@@ -19,7 +19,7 @@ jobs:
         image: postgres:15-alpine
         env:
           POSTGRES_DB: cinema_test
-          POSTGRES_USER: cinema
+          POSTGRES_USER: cinema_user
           POSTGRES_PASSWORD: cinema_password
         options: >-
           --health-cmd pg_isready
@@ -55,18 +55,34 @@ jobs:
 
       - name: 🔧 Run migrations
         env:
-          DATABASE_URL: postgresql://cinema:cinema_password@localhost:5432/cinema_test
-          REDIS_URL: redis://localhost:6379/0
+          POSTGRES_DB: cinema_test
+          POSTGRES_USER: cinema_user
+          POSTGRES_PASSWORD: cinema_password
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
           SECRET_KEY: test-secret-key
           DEBUG: "False"
-        run: python manage.py migrate --noinput
+          PERF_DISABLE_THROTTLE: "True"
+        run: |
+          # Wait for Postgres to be ready
+          python -c "import socket, time; s = socket.socket(socket.AF_INET, socket.SOCK_STREAM); 
+          while s.connect_ex(('localhost', 5432)) != 0: time.sleep(1)"
+          python manage.py migrate --noinput
 
       - name: 🧪 Run all tests
         env:
-          DATABASE_URL: postgresql://cinema:cinema_password@localhost:5432/cinema_test
-          REDIS_URL: redis://localhost:6379/0
+          POSTGRES_DB: cinema_test
+          POSTGRES_USER: cinema_user
+          POSTGRES_PASSWORD: cinema_password
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
           SECRET_KEY: test-secret-key
           DEBUG: "False"
+          PERF_DISABLE_THROTTLE: "True"
         run: pytest --cov --cov-report=html --cov-report=term -v
 
       - name: 📊 Archive coverage report

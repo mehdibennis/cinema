@@ -63,11 +63,12 @@ class TestFilmViewSet:
             "release_date": "2023-01-01",
             "evaluation": "PG",
             "status": "draft",
-            "author_id": author.id,
+            "author_ids": [author.id],
         }
         response = api_client.post(url, data)
         assert response.status_code == status.HTTP_201_CREATED
         assert Film.objects.count() == 1
+        assert Film.objects.first().authors.count() == 1
 
     def test_create_film_unauthorized(self, api_client):
         # Anonymous

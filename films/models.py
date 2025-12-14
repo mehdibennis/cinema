@@ -27,7 +27,7 @@ class Film(TimestampedModelMixin):
     description = models.TextField()
     release_date = models.DateField(db_index=True)
     evaluation = models.CharField(max_length=10, choices=EVALUATION_CHOICES, default="G")
-    author = models.ForeignKey("authors.Author", on_delete=models.PROTECT, related_name="films")
+    authors = models.ManyToManyField("authors.Author", related_name="films")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="draft", db_index=True)
 
     # Fields for TMDb integration
@@ -43,8 +43,6 @@ class Film(TimestampedModelMixin):
         indexes = [
             # Composite indexes for common query patterns
             models.Index(fields=["status", "release_date"], name="film_status_date_idx"),
-            models.Index(fields=["author", "status"], name="film_author_status_idx"),
-            models.Index(fields=["author", "release_date"], name="film_author_release_idx"),
         ]
 
     def __str__(self):

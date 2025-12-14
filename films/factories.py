@@ -14,11 +14,21 @@ class FilmFactory(factory.django.DjangoModelFactory):
     evaluation = "G"
     status = "published"
 
-    @factory.lazy_attribute
-    def author(self):
-        from authors.factories import AuthorFactory
+    @factory.post_generation
+    def authors(self, create, extracted, **kwargs):
+        if not create:
+            # Simple build, do nothing.
+            return
 
-        return AuthorFactory()
+        if extracted:
+            # A list of authors were passed in, use them
+            for author in extracted:
+                self.authors.add(author)
+        else:
+            # Create a default author
+            from authors.factories import AuthorFactory
+
+            self.authors.add(AuthorFactory())
 
 
 class FilmReviewFactory(factory.django.DjangoModelFactory):

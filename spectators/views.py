@@ -41,7 +41,7 @@ class SpectatorViewSet(viewsets.ReadOnlyModelViewSet):
 
     queryset = (
         Spectator.objects.select_related("user")
-        .prefetch_related("favorite_films__author", "favorite_films__reviews")
+        .prefetch_related("favorite_films__authors", "favorite_films__reviews")
         .all()
     )
     serializer_class = SpectatorSerializer

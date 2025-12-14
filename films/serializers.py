@@ -33,13 +33,14 @@ class AuthorNestedSerializer(serializers.Serializer):
 
 
 class FilmSerializer(serializers.ModelSerializer):
-    author = AuthorNestedSerializer(read_only=True)  # Nested serializer WITHOUT the list of films
+    authors = AuthorNestedSerializer(many=True, read_only=True)
 
-    # To allow adding author via ID during creation/modification:
-    author_id = serializers.PrimaryKeyRelatedField(
+    # To allow adding authors via ID during creation/modification:
+    author_ids = serializers.PrimaryKeyRelatedField(
         write_only=True,
-        queryset=Film._meta.get_field("author").related_model.objects.all(),  # type: ignore[union-attr]
-        source="author",
+        many=True,
+        queryset=Film._meta.get_field("authors").related_model.objects.all(),  # type: ignore[union-attr]
+        source="authors",
     )
 
     reviews = FilmReviewSerializer(many=True, read_only=True)
@@ -54,8 +55,8 @@ class FilmSerializer(serializers.ModelSerializer):
             "release_date",
             "evaluation",
             "status",
-            "author",
-            "author_id",
+            "authors",
+            "author_ids",
             "tmdb_id",
             "poster",
             "reviews",

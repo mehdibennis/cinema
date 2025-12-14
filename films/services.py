@@ -74,10 +74,12 @@ class TMDBService:
                 "release_date": release_date,
                 "status": "published",
                 "evaluation": "G",  # Default
-                "author": director,
                 "source": "TMDB",
             },
         )
+
+        # Add director to authors
+        film.authors.add(director)
 
         # Handle Poster - always update if poster_path exists
         poster_path = movie_data.get("poster_path")

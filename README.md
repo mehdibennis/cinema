@@ -53,7 +53,7 @@ cinema/
 └── loadtests/      # k6 performance tests
 ```
 
-Core relation: `CustomUser` → `Author` (1:1) → `Film` (FK) ← `FilmReview` ← `Spectator` (1:1) ← `CustomUser`
+Core relation: `CustomUser` → `Author` (1:1) ↔ `Film` (M2M) ← `FilmReview` ← `Spectator` (1:1) ← `CustomUser`
 
 ---
 
@@ -146,6 +146,7 @@ make import_tmdb        # import films from TMDb
 
 # Tests & quality
 make test               # tests + coverage (~92%)
+                        # ⚠️ Requires PERF_DISABLE_THROTTLE=true in .env
 make quality            # Ruff + Black + isort + MyPy
 make format             # auto-format code
 

@@ -56,7 +56,7 @@ createsuperuser:
 
 create_data:
 	@echo "🎬 Creating default data..."
-	@$(DOCKER_CMD) exec web python manage.py create_default_data
+	@$(DOCKER_CMD) exec web python manage.py create_default_data --clear
 	@echo "✅ Default data created!"
 
 # ==============================================================================

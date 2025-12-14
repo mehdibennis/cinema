@@ -58,15 +58,16 @@ class TestFilmSerializerExtended:
 
         author = Author.objects.create(user=user, tmdb_id=123)
 
-        film = FilmFactory(author=author, title="E.T.")
+        film = FilmFactory(title="E.T.", authors=[author])
 
         serializer = FilmSerializer(film)
         data = serializer.data
 
-        assert "author" in data
-        assert data["author"]["username"] == user.username
-        assert data["author"]["first_name"] == "Steven"
-        assert data["author"]["last_name"] == "Spielberg"
+        assert "authors" in data
+        assert len(data["authors"]) == 1
+        assert data["authors"][0]["username"] == user.username
+        assert data["authors"][0]["first_name"] == "Steven"
+        assert data["authors"][0]["last_name"] == "Spielberg"
 
 
 @pytest.mark.django_db

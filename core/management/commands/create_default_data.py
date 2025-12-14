@@ -232,10 +232,11 @@ class Command(BaseCommand):
                     "release_date": data["release_date"],
                     "evaluation": data["evaluation"],
                     "status": data["status"],
-                    "author": authors[data["author_idx"]],
                     "source": "ADMIN",
                 },
             )
+            if created:
+                film.authors.add(authors[data["author_idx"]])
             films.append(film)
 
         self.stdout.write(self.style.SUCCESS(f"✓ {len(films)} films créés"))
