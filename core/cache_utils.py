@@ -31,7 +31,7 @@ def build_list_cache_key(prefix: str, request: Request) -> str:
 
     # Create a hash of query parameters
     query_string = force_str(request.META.get("QUERY_STRING", ""))
-    query_hash = hashlib.md5(query_string.encode("utf-8")).hexdigest()
+    query_hash = hashlib.md5(query_string.encode("utf-8"), usedforsecurity=False).hexdigest()
 
     # Include user ID to handle vary_on_cookie / permissions
     user_part = f"u{request.user.id}" if request.user.is_authenticated else "anon"
