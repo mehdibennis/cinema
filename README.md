@@ -2,8 +2,8 @@ git clone <repo-url> && cd cinema
 docker compose exec web pip install types-requests types-redis
 # 🎬 Cinema API - Django REST Framework
 
-[![CI/CD](https://github.com//mehdibennis/cinema/workflows/CI/CD%20Pipeline/badge.svg)](https://github.com/USERNAME/cinema/actions)
-[![codecov](https://codecov.io/gh/mehdibennis/cinema/branch/main/graph/badge.svg)](https://codecov.io/gh/USERNAME/cinema)
+[![CI/CD](https://github.com//mehdibennis/cinema/workflows/CI/CD%20Pipeline/badge.svg)](https://github.com/mehdibennis/cinema/actions)
+[![codecov](https://codecov.io/github/mehdibennis/cinema/branch/master/graph/badge.svg)](https://codecov.io/github/mehdibennis/cinema)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/)
 [![Django 4.2](https://img.shields.io/badge/django-4.2-green.svg)](https://www.djangoproject.com/)
 [![DRF 3.15](https://img.shields.io/badge/DRF-3.15-orange.svg)](https://www.django-rest-framework.org/)
@@ -84,13 +84,7 @@ The project includes three Docker Compose configurations for different environme
   - DEBUG mode enabled
 - **Usage**: `make run` (default)
 
-### Test (`docker-compose-test.yml`)
-- **Purpose**: Isolated testing environment
-- **Features**:
-  - Clean database for each test run
-  - No volume mounts (uses container filesystem)
-  - Optimized for CI/CD pipelines
-- **Usage**: `make test`
+
 
 ### Staging (`docker-compose-staging.yml`)
 - **Purpose**: Pre-production validation environment
@@ -100,34 +94,6 @@ The project includes three Docker Compose configurations for different environme
   - Restart policies for reliability
 - **Usage**: `docker compose -f docker-compose-staging.yml up`
 - **⚠️ Note**: This is NOT a production-ready configuration
-
-### Production Deployment
-
-For actual production deployments, we recommend using managed platforms instead of docker-compose:
-
-**Recommended platforms**:
-- **AWS**: ECS Fargate, RDS (PostgreSQL), ElastiCache (Redis), ALB, CloudWatch
-- **GCP**: Cloud Run, Cloud SQL, Memorystore, Cloud Load Balancing
-- **Azure**: Container Instances, Database for PostgreSQL, Cache for Redis
-- **Platform-as-a-Service**: Railway, Render, Fly.io
-
-**Why not docker-compose in production?**
-- No built-in horizontal scaling or load balancing
-- Secrets stored in `.env` files (security risk)
-- Single point of failure (no high availability)
-- No centralized logging or monitoring
-- Database not externalized (data persistence risk)
-- Manual SSL/TLS certificate management
-
-**Production requirements checklist**:
-- ✅ Reverse proxy (nginx/Traefik) with SSL termination
-- ✅ Secrets management (AWS Secrets Manager, Vault, etc.)
-- ✅ Monitoring and alerting (Prometheus, Grafana, Sentry)
-- ✅ Log aggregation (ELK stack, CloudWatch, Datadog)
-- ✅ Managed database with backups and replication
-- ✅ Horizontal scaling and auto-scaling policies
-- ✅ Health checks and graceful shutdowns
-- ✅ Container orchestration (Kubernetes, ECS, etc.)
 
 ---
 
@@ -235,6 +201,8 @@ Key tooling:
 ### Load testing (k6)
 
 ```bash
+export K6_USER=admin
+export K6_PASS=admin123
 make loadtest           # run basic k6 load test
 k6 run loadtests/perf_test.js  # advanced scenarios
 ```
@@ -264,7 +232,6 @@ Branch protection requires all checks to pass before merging to `main`.
 
 ## 🎓 Advanced technical notes
 
-- DRF patterns: use `source=` and DB annotations instead of `SerializerMethodField` where possible
 - Custom permissions: `IsAuthorOrAdminOrReadOnly`, role-based access
 - Cache strategy: Redis + `@cache_page` + `@vary_on_cookie`
 - Type safety: MyPy strict configuration with django-stubs
@@ -314,21 +281,11 @@ make restart && make logs
 docker compose exec web pip install types-requests types-redis
 
 # If tests fail
-make clean && make run && make migrate && make test
+make clean &&  export PERF_DISABLE_THROTTLE=true make run && make migrate && make test
 
 # If TMDb import returns 401
 # check TMDB_API_KEY in your .env and obtain a key at https://www.themoviedb.org/settings/api
 ```
-
----
-
-## 📚 Additional documentation
-
-- [MYPY.md](MYPY.md) - MyPy configuration
-- [DRF_SPECTACULAR.md](DRF_SPECTACULAR.md) - OpenAPI / Swagger notes
-- [VALIDATION.md](VALIDATION.md) - Validation checklist
-- [.github/workflows/README.md](.github/workflows/README.md) - CI/CD details
-- [MODIFICATIONS.md](MODIFICATIONS.md) - Change log
 
 ---
 
