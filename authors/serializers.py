@@ -6,14 +6,6 @@ from users.models import CustomUser
 from .models import Author, AuthorReview
 
 
-class UserNestedSerializer(serializers.ModelSerializer):
-    """Nested serializer to display user information."""
-
-    class Meta:
-        model = CustomUser
-        fields = ["id", "username", "first_name", "last_name", "email"]
-
-
 class FilmNestedSerializer(serializers.ModelSerializer):
     """Minimal nested serializer to display an author's films."""
 
@@ -56,7 +48,7 @@ class AuthorSerializer(serializers.ModelSerializer):
             "reviews_count",
             "created_at",
             "updated_at",
-            "user",  # Write-only pour création
+            "user",  # Write-only for creation
         ]
         read_only_fields = [
             "created_at",
