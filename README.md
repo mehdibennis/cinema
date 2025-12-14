@@ -2,8 +2,8 @@ git clone <repo-url> && cd cinema
 docker compose exec web pip install types-requests types-redis
 # 🎬 Cinema API - Django REST Framework
 
-[![CI/CD](https://github.com/USERNAME/cinema/workflows/CI/CD%20Pipeline/badge.svg)](https://github.com/USERNAME/cinema/actions)
-[![codecov](https://codecov.io/gh/USERNAME/cinema/branch/main/graph/badge.svg)](https://codecov.io/gh/USERNAME/cinema)
+[![CI/CD](https://github.com//mehdibennis/cinema/workflows/CI/CD%20Pipeline/badge.svg)](https://github.com/USERNAME/cinema/actions)
+[![codecov](https://codecov.io/gh/mehdibennis/cinema/branch/main/graph/badge.svg)](https://codecov.io/gh/USERNAME/cinema)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/)
 [![Django 4.2](https://img.shields.io/badge/django-4.2-green.svg)](https://www.djangoproject.com/)
 [![DRF 3.15](https://img.shields.io/badge/DRF-3.15-orange.svg)](https://www.django-rest-framework.org/)

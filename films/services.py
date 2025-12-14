@@ -34,6 +34,7 @@ class TMDBService:
             response = requests.get(
                 f"{self.BASE_URL}/movie/popular",
                 params={"api_key": self.api_key, "language": "fr-FR"},
+                timeout=10,
             )
             response.raise_for_status()
             return response.json().get("results", [])[:limit]
@@ -96,6 +97,7 @@ class TMDBService:
             response = requests.get(
                 f"{self.BASE_URL}/movie/{tmdb_id}/credits",
                 params={"api_key": self.api_key},
+                timeout=10,
             )
             response.raise_for_status()
             crew = response.json().get("crew", [])

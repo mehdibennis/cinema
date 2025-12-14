@@ -91,11 +91,17 @@ format:
 	@$(DOCKER_CMD) exec web ruff check --fix . || true
 	@echo "✅ Code formatted!"
 
-quality: lint typecheck
+security:
+	@echo "🔒 Running security checks..."
+	@$(DOCKER_CMD) exec web bandit -c pyproject.toml -r .
+	@echo "✅ Security checks passed!"
+
+quality: lint typecheck security
 	@echo ""
 	@echo "✅ All quality checks passed!"
 	@echo "   - Linting (ruff, black): ✓"
 	@echo "   - Type checking (mypy): ✓"
+	@echo "   - Security (bandit): ✓"
 	@echo ""
 
 precommit: quality test

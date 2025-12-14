@@ -29,6 +29,7 @@ types-django-filter>=23.0.0
 ruff>=0.8.0
 black>=24.10.0
 isort>=5.13.0
+bandit>=1.7.5
 
 # Debug & Development
 ipython>=8.14.0
