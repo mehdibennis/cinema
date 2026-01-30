@@ -1,5 +1,5 @@
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import requests
 from decouple import config
@@ -9,6 +9,9 @@ from django.db import transaction
 
 from authors.models import Author
 from films.models import Film
+
+if TYPE_CHECKING:
+    from users.models import CustomUser
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -125,7 +128,21 @@ class TMDBService:
         # Fetch full person details for birthday and biography
         person_details = self._fetch_person_details(tmdb_id)
 
-        # Create User
+        # Create or get user
+        user = self._get_or_create_author_user(tmdb_id, name)
+
+        # Create or update author
+        author = self._create_or_update_author(user, tmdb_id, person_details)
+
+        # Handle Photo - use profile_path from person_details if available
+        profile_path = self._get_profile_path(person_details, person_data)
+        if profile_path:
+            self._download_and_save_author_photo(author, profile_path, tmdb_id)
+
+        return author
+
+    def _get_or_create_author_user(self, tmdb_id: int, name: str) -> "CustomUser":
+        """Create or get a User for an author."""
         username = f"tmdb_{tmdb_id}"
         email = f"{username}@example.com"
 
@@ -147,40 +164,48 @@ class TMDBService:
             user.set_unusable_password()
             user.save()
 
-        # Extract birthday from person details
-        birthday = None
-        if person_details and person_details.get("birthday"):
-            try:
-                from datetime import datetime
+        return user
 
-                birthday = datetime.strptime(person_details["birthday"], "%Y-%m-%d").date()
-            except (ValueError, TypeError):
-                birthday = None
+    def _create_or_update_author(
+        self, user: "CustomUser", tmdb_id: int, person_details: dict[str, Any] | None
+    ) -> Author:
+        """Create or update an Author from person details."""
+        birthday = self._parse_birthday(person_details)
+        bio = self._extract_bio(person_details)
 
-        # Extract biography
-        bio = ""
-        if person_details:
-            bio = person_details.get("biography", "") or ""
-
-        # Create Author
         author, _ = Author.objects.update_or_create(
             user=user,
             defaults={
                 "tmdb_id": tmdb_id,
                 "source": "TMDB",
                 "date_of_birth": birthday,
-                "bio": bio[:1000] if bio else "",  # Limit bio length
+                "bio": bio[:1000] if bio else "",
             },
         )
-
-        # Handle Photo - use profile_path from person_details if available
-        profile_path = (person_details.get("profile_path") if person_details else None) or person_data.get(
-            "profile_path"
-        )
-        if profile_path:
-            self._download_and_save_author_photo(author, profile_path, tmdb_id)
-
         return author
+
+    def _parse_birthday(self, person_details: dict[str, Any] | None):
+        """Parse birthday from person details."""
+        if not person_details or not person_details.get("birthday"):
+            return None
+        try:
+            from datetime import datetime
+
+            return datetime.strptime(person_details["birthday"], "%Y-%m-%d").date()
+        except (ValueError, TypeError):
+            return None
+
+    def _extract_bio(self, person_details: dict[str, Any] | None) -> str:
+        """Extract biography from person details."""
+        if not person_details:
+            return ""
+        return person_details.get("biography", "") or ""
+
+    def _get_profile_path(self, person_details: dict[str, Any] | None, person_data: dict[str, Any]) -> str | None:
+        """Get profile path from person details or fallback to person data."""
+        if person_details and person_details.get("profile_path"):
+            return person_details["profile_path"]
+        return person_data.get("profile_path")
 
     def _fetch_person_details(self, person_id: int) -> dict[str, Any] | None:
         """
@@ -229,31 +254,34 @@ class TMDBService:
         Uses author's first and last name for readable filename.
         """
         try:
-            from django.utils.text import slugify
-
             url = f"{self.IMAGE_BASE_URL}{profile_path}"
             response = requests.get(url, timeout=10)
-            if response.status_code == 200:
-                # Delete old photo file if it exists
-                if author.photo:
-                    author.photo.delete(save=False)
+            if response.status_code != 200:
+                return
 
-                # Create clean filename from first and last name
-                first_name = slugify(author.user.first_name) if author.user.first_name else ""
-                last_name = slugify(author.user.last_name) if author.user.last_name else ""
+            # Delete old photo file if it exists
+            if author.photo:
+                author.photo.delete(save=False)
 
-                if first_name and last_name:
-                    filename = f"author_{first_name}_{last_name}.jpg"
-                elif first_name or last_name:
-                    filename = f"author_{first_name or last_name}.jpg"
-                else:
-                    # Fallback to username if no name available
-                    filename = f"author_{slugify(author.user.username)}.jpg"
-
-                # Save new photo with readable filename
-                author.photo.save(filename, ContentFile(response.content), save=True)
+            # Create clean filename and save
+            filename = self._build_author_photo_filename(author)
+            author.photo.save(filename, ContentFile(response.content), save=True)
         except Exception as e:
             logger.error(f"Failed to download photo for author {tmdb_id}: {e}")
+
+    def _build_author_photo_filename(self, author) -> str:
+        """Build a clean filename for author photo."""
+        from django.utils.text import slugify
+
+        first_name = slugify(author.user.first_name) if author.user.first_name else ""
+        last_name = slugify(author.user.last_name) if author.user.last_name else ""
+
+        if first_name and last_name:
+            return f"author_{first_name}_{last_name}.jpg"
+        if first_name or last_name:
+            return f"author_{first_name or last_name}.jpg"
+        # Fallback to username if no name available
+        return f"author_{slugify(author.user.username)}.jpg"
 
     def _download_and_save_image(self, url: str, model_field, filename: str) -> None:
         """

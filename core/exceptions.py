@@ -171,7 +171,33 @@ def custom_exception_handler(exc: Exception, context: dict[str, Any]) -> Respons
 
     This handler catches all exceptions and formats them in a standardized way.
     """
-    # Log the exception
+    _log_exception(exc, context)
+
+    # Try specific handlers in order
+    handlers = [
+        _handle_base_api_exception,
+        _handle_http404,
+        _handle_permission_denied,
+        _handle_django_validation_error,
+        _handle_integrity_error,
+        _handle_drf_builtin_exception,
+    ]
+
+    for handler in handlers:
+        response = handler(exc, context)
+        if response is not None:
+            return response
+
+    # Unhandled exception - return generic 500 error
+    return build_error_response(
+        code="INTERNAL_ERROR",
+        message="An internal error has occurred.",
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+    )
+
+
+def _log_exception(exc: Exception, context: dict[str, Any]) -> None:
+    """Log the exception with context information."""
     request = context.get("request")
     logger.error(
         f"API Exception: {type(exc).__name__}: {exc}",
@@ -182,104 +208,118 @@ def custom_exception_handler(exc: Exception, context: dict[str, Any]) -> Respons
         },
     )
 
-    # Handle our custom exceptions
-    if isinstance(exc, BaseAPIException):
-        return build_error_response(
-            code=exc.code,
-            message=str(exc.detail),
-            status_code=exc.status_code,
-            details=exc.extra if exc.extra else None,
-        )
 
-    # Handle Django's Http404
-    if isinstance(exc, Http404):
-        return build_error_response(
-            code="NOT_FOUND",
-            message=str(exc) if str(exc) != "" else "Resource not found.",
-            status_code=status.HTTP_404_NOT_FOUND,
-        )
-
-    # Handle Django's PermissionDenied
-    if isinstance(exc, PermissionDenied):
-        return build_error_response(
-            code="PERMISSION_DENIED",
-            message=str(exc) if str(exc) else "You do not have the necessary permissions.",
-            status_code=status.HTTP_403_FORBIDDEN,
-        )
-
-    # Handle Django's ValidationError
-    if isinstance(exc, DjangoValidationError):
-        if hasattr(exc, "message_dict"):
-            field_errors = {field: [str(e) for e in errors] for field, errors in exc.message_dict.items()}
-            return build_error_response(
-                code="VALIDATION_ERROR",
-                message="Invalid data.",
-                status_code=status.HTTP_400_BAD_REQUEST,
-                field_errors=field_errors,
-            )
-        return build_error_response(
-            code="VALIDATION_ERROR",
-            message=str(exc.message) if hasattr(exc, "message") else str(exc),
-            status_code=status.HTTP_400_BAD_REQUEST,
-        )
-
-    # Handle Django's IntegrityError (duplicate key, foreign key violations, etc.)
-    if isinstance(exc, IntegrityError):
-        error_message = str(exc)
-        # Parse common integrity errors
-        if "duplicate key" in error_message.lower():
-            if "user_id" in error_message:
-                message = "This user already has an author profile."
-            else:
-                message = "This resource already exists."
-            return build_error_response(
-                code="DUPLICATE_RESOURCE",
-                message=message,
-                status_code=status.HTTP_409_CONFLICT,
-            )
-        elif "foreign key" in error_message.lower():
-            return build_error_response(
-                code="INVALID_REFERENCE",
-                message="The reference to a related resource is invalid.",
-                status_code=status.HTTP_400_BAD_REQUEST,
-            )
-        elif "null value" in error_message.lower():
-            return build_error_response(
-                code="MISSING_REQUIRED_FIELD",
-                message="A required field is missing.",
-                status_code=status.HTTP_400_BAD_REQUEST,
-            )
-        # Generic integrity error
-        return build_error_response(
-            code="INTEGRITY_ERROR",
-            message="The operation violates a database integrity constraint.",
-            status_code=status.HTTP_409_CONFLICT,
-        )
-
-    # Get standard DRF response first
-    response = exception_handler(exc, context)
-
-    if response is not None:
-        # Handle DRF's built-in exceptions
-        return _handle_drf_exception(exc, response)
-
-    # Unhandled exception - return generic 500 error
-    # In production, don't expose internal error details
+def _handle_base_api_exception(exc: Exception, context: dict[str, Any]) -> Response | None:
+    """Handle our custom BaseAPIException subclasses."""
+    if not isinstance(exc, BaseAPIException):
+        return None
     return build_error_response(
-        code="INTERNAL_ERROR",
-        message="An internal error has occurred.",
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        code=exc.code,
+        message=str(exc.detail),
+        status_code=exc.status_code,
+        details=exc.extra if exc.extra else None,
     )
 
 
-def _handle_drf_exception(exc: Exception, response: Response) -> Response:
-    """Handle DRF's built-in exceptions and format them consistently."""
+def _handle_http404(exc: Exception, context: dict[str, Any]) -> Response | None:
+    """Handle Django's Http404."""
+    if not isinstance(exc, Http404):
+        return None
+    return build_error_response(
+        code="NOT_FOUND",
+        message=str(exc) if str(exc) != "" else "Resource not found.",
+        status_code=status.HTTP_404_NOT_FOUND,
+    )
 
-    # Determine error code based on status
+
+def _handle_permission_denied(exc: Exception, context: dict[str, Any]) -> Response | None:
+    """Handle Django's PermissionDenied."""
+    if not isinstance(exc, PermissionDenied):
+        return None
+    return build_error_response(
+        code="PERMISSION_DENIED",
+        message=str(exc) if str(exc) else "You do not have the necessary permissions.",
+        status_code=status.HTTP_403_FORBIDDEN,
+    )
+
+
+def _handle_django_validation_error(exc: Exception, context: dict[str, Any]) -> Response | None:
+    """Handle Django's ValidationError."""
+    if not isinstance(exc, DjangoValidationError):
+        return None
+
+    if hasattr(exc, "message_dict"):
+        field_errors = {field: [str(e) for e in errors] for field, errors in exc.message_dict.items()}
+        return build_error_response(
+            code="VALIDATION_ERROR",
+            message="Invalid data.",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            field_errors=field_errors,
+        )
+    return build_error_response(
+        code="VALIDATION_ERROR",
+        message=str(exc.message) if hasattr(exc, "message") else str(exc),
+        status_code=status.HTTP_400_BAD_REQUEST,
+    )
+
+
+def _handle_integrity_error(exc: Exception, context: dict[str, Any]) -> Response | None:
+    """Handle Django's IntegrityError (duplicate key, foreign key violations, etc.)."""
+    if not isinstance(exc, IntegrityError):
+        return None
+    return _parse_integrity_error(str(exc))
+
+
+def _parse_integrity_error(error_message: str) -> Response:
+    """Parse IntegrityError message and return appropriate response."""
+    error_lower = error_message.lower()
+
+    if "duplicate key" in error_lower:
+        message = (
+            "This user already has an author profile."
+            if "user_id" in error_message
+            else "This resource already exists."
+        )
+        return build_error_response(
+            code="DUPLICATE_RESOURCE",
+            message=message,
+            status_code=status.HTTP_409_CONFLICT,
+        )
+
+    if "foreign key" in error_lower:
+        return build_error_response(
+            code="INVALID_REFERENCE",
+            message="The reference to a related resource is invalid.",
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if "null value" in error_lower:
+        return build_error_response(
+            code="MISSING_REQUIRED_FIELD",
+            message="A required field is missing.",
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # Generic integrity error
+    return build_error_response(
+        code="INTEGRITY_ERROR",
+        message="The operation violates a database integrity constraint.",
+        status_code=status.HTTP_409_CONFLICT,
+    )
+
+
+def _handle_drf_builtin_exception(exc: Exception, context: dict[str, Any]) -> Response | None:
+    """Handle DRF's built-in exceptions."""
+    response = exception_handler(exc, context)
+    if response is None:
+        return None
+    return _format_drf_exception(exc, response)
+
+
+def _format_drf_exception(exc: Exception, response: Response) -> Response:
+    """Format DRF's built-in exceptions consistently."""
     status_code = response.status_code
     code = _get_error_code_from_status(status_code, exc)
-
-    # Extract error message
     message, field_errors = _extract_error_details(response.data)
 
     return build_error_response(

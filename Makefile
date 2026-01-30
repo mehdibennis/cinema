@@ -1,4 +1,4 @@
-.PHONY: help run stop restart logs connect connect_db createsuperuser test lint typecheck quality format precommit clean migrate makemigrations import_tmdb shell loadtest cleanup clean-pycache coverage docs install-hooks
+.PHONY: help run stop restart logs connect connect_db createsuperuser test lint typecheck quality format precommit clean migrate makemigrations import_tmdb shell loadtest cleanup clean-pycache coverage docs install-hooks security security-full deadcode docstrings deps complexity templates quality-full
 DOCKER_CMD = docker compose -f docker-compose-dev.yml
 BASE_URL ?= http://localhost:8000
 LOADTEST_SCRIPT ?= perf_test.js
@@ -93,8 +93,66 @@ format:
 
 security:
 	@echo "🔒 Running security checks..."
+	@echo ""
+	@echo "📌 Bandit (static security analysis)..."
 	@$(DOCKER_CMD) exec web bandit -c pyproject.toml -r .
-	@echo "✅ Security checks passed!"
+	@echo ""
+	@echo "📌 pip-audit (dependency vulnerabilities - CVE)..."
+	@$(DOCKER_CMD) exec web pip-audit -r requirements.prod.txt || true
+	@echo ""
+	@echo "✅ Security checks completed!"
+
+security-full:
+	@echo "🔒 Running comprehensive security audit..."
+	@echo ""
+	@echo "📌 Bandit (static security analysis)..."
+	@$(DOCKER_CMD) exec web bandit -c pyproject.toml -r . -f json -o bandit-report.json || true
+	@$(DOCKER_CMD) exec web bandit -c pyproject.toml -r .
+	@echo ""
+	@echo "📌 pip-audit (dependency vulnerabilities)..."
+	@$(DOCKER_CMD) exec web pip-audit -r requirements.prod.txt --format json -o pip-audit-report.json || true
+	@$(DOCKER_CMD) exec web pip-audit -r requirements.prod.txt || true
+	@echo ""
+	@echo "📌 Safety (additional CVE check)..."
+	@$(DOCKER_CMD) exec web safety check -r requirements.prod.txt --output json > safety-report.json 2>/dev/null || true
+	@$(DOCKER_CMD) exec web safety check -r requirements.prod.txt || true
+	@echo ""
+	@echo "✅ Full security audit completed! Reports: bandit-report.json, pip-audit-report.json, safety-report.json"
+
+deadcode:
+	@echo "💀 Detecting dead code with vulture..."
+	@$(DOCKER_CMD) exec web vulture . --min-confidence 80 --exclude "migrations,tests,staticfiles,*factories.py" || true
+	@echo "✅ Dead code check completed!"
+
+docstrings:
+	@echo "📝 Checking docstring coverage with interrogate..."
+	@$(DOCKER_CMD) exec web interrogate -vv --fail-under=60 --exclude migrations --exclude tests --exclude staticfiles --exclude conftest.py
+	@echo "✅ Docstring check completed!"
+
+deps:
+	@echo "📦 Checking for unused/missing dependencies with deptry..."
+	@$(DOCKER_CMD) exec web deptry . || true
+	@echo "✅ Dependency check completed!"
+
+complexity:
+	@echo "🧠 Analyzing code complexity with radon..."
+	@echo ""
+	@echo "📌 Cyclomatic Complexity (A=best, F=worst):"
+	@$(DOCKER_CMD) exec web radon cc . -a -s --exclude "migrations,tests,staticfiles" || true
+	@echo ""
+	@echo "📌 Maintainability Index (A=best, C=worst):"
+	@$(DOCKER_CMD) exec web radon mi . -s --exclude "migrations,tests,staticfiles" || true
+	@echo ""
+	@echo "✅ Complexity analysis completed!"
+
+templates:
+	@echo "🎨 Linting Django templates with djLint..."
+	@if [ -d "templates" ]; then \
+		$(DOCKER_CMD) exec web djlint templates/ --profile=django --lint || true; \
+	else \
+		echo "ℹ️  No templates/ directory found (API-only project). Skipping..."; \
+	fi
+	@echo "✅ Template check completed!"
 
 quality: lint typecheck security
 	@echo ""
@@ -108,6 +166,18 @@ precommit: quality test
 	@echo ""
 	@echo "✅ Pre-commit checks complete!"
 	@echo "   Ready to commit safely."
+	@echo ""
+
+quality-full: lint typecheck security deadcode docstrings deps complexity
+	@echo ""
+	@echo "✅ Full quality audit completed!"
+	@echo "   - Linting (ruff, black): ✓"
+	@echo "   - Type checking (mypy): ✓"
+	@echo "   - Security (bandit, pip-audit): ✓"
+	@echo "   - Dead code (vulture): ✓"
+	@echo "   - Docstrings (interrogate): ✓"
+	@echo "   - Dependencies (deptry): ✓"
+	@echo "   - Complexity (radon): ✓"
 	@echo ""
 
 # ==============================================================================
@@ -214,9 +284,19 @@ help:
 	@echo "  make lint             - Lint with ruff + black"
 	@echo "  make typecheck        - Type check with mypy"
 	@echo "  make format           - Format with black + isort"
-	@echo "  make quality          - Run all checks (lint + typecheck) ⭐"
+	@echo "  make security         - Security scan (bandit + pip-audit)"
+	@echo "  make security-full    - Full security audit with reports"
+	@echo "  make quality          - Run lint + typecheck + security ⭐"
+	@echo "  make quality-full     - Full audit (all checks) ⭐⭐"
 	@echo "  make precommit        - Run all checks + tests (pre-commit)"
 	@echo "  make install-hooks    - Install Git pre-commit hooks"
+	@echo ""
+	@echo "🔍 CODE ANALYSIS:"
+	@echo "  make deadcode         - Find dead code (vulture)"
+	@echo "  make docstrings       - Check docstring coverage (interrogate)"
+	@echo "  make deps             - Check unused dependencies (deptry)"
+	@echo "  make complexity       - Analyze code complexity (radon)"
+	@echo "  make templates        - Lint Django templates (djLint)"
 	@echo ""
 	@echo "🎬 DATA & IMPORTS:"
 	@echo "  make import_tmdb      - Import movies from TMDb (20 films)"

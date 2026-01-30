@@ -29,5 +29,9 @@ htmlcov/
 coverage.xml
 *.cover
 
+# Security reports
+*report.json
+
+
 # Environment
 .env

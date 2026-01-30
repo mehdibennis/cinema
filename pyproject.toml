@@ -33,23 +33,23 @@ classifiers = [
 "Repository" = "https://github.com/USERNAME/cinema"
 
 # ============================================================================
-# DEPENDENCIES
+# DEPENDENCIES (pinned for security - audit: 2026-01-30)
 # ============================================================================
 
 dependencies = [
-    "Django>=4.2.5,<5.0",
-    "djangorestframework>=3.15.2",
-    "djangorestframework-simplejwt>=5.2.2",
-    "psycopg2-binary>=2.9.6",
-    "gunicorn>=20.1.0",
-    "python-decouple>=3.8",
-    "drf-spectacular>=0.29.0",
-    "django-extensions>=3.2.1",
-    "Pillow>=9.0.0",
-    "whitenoise>=6.5.0",
-    "django-filter>=23.2",
-    "django-redis>=5.4.0",
-    "requests>=2.31.0",
+    "Django==4.2.27",
+    "djangorestframework==3.16.1",
+    "djangorestframework-simplejwt==5.5.1",
+    "psycopg2-binary==2.9.10",
+    "gunicorn==24.1.1",
+    "python-decouple==3.8",
+    "drf-spectacular==0.29.0",
+    "django-extensions==4.1",
+    "Pillow==12.1.0",
+    "whitenoise==6.8.2",
+    "django-filter==23.2",
+    "django-redis==6.0.0",
+    "requests==2.32.5",
 ]
 
 [project.optional-dependencies]
@@ -355,6 +355,99 @@ skips = [
     "B101",  # assert used (ok in tests)
     "B104",  # hardcoded bind all interfaces
 ]
+
+# ============================================================================
+# VULTURE - Dead Code Detection
+# ============================================================================
+
+[tool.vulture]
+min_confidence = 80
+paths = ["authors", "films", "spectators", "users", "core", "cinema"]
+exclude = ["migrations/", "tests/", "staticfiles/", "*factories.py"]
+
+# ============================================================================
+# INTERROGATE - Docstring Coverage
+# ============================================================================
+
+[tool.interrogate]
+ignore-init-method = true
+ignore-init-module = true
+ignore-magic = true
+ignore-semiprivate = true
+ignore-private = true
+ignore-property-decorators = true
+ignore-module = true
+ignore-nested-functions = true
+ignore-nested-classes = true
+fail-under = 60
+exclude = ["migrations", "tests", "staticfiles", "conftest.py", "*factories.py"]
+verbose = 1
+quiet = false
+color = true
+
+# ============================================================================
+# DEPTRY - Unused Dependencies Detection
+# ============================================================================
+
+[tool.deptry]
+extend_exclude = ["migrations", "tests", "staticfiles", "loadtests", "htmlcov"]
+ignore_notebooks = true
+
+[tool.deptry.per_rule_ignores]
+# DEP002: Dev tools used as CLI commands, not imported in code
+DEP002 = [
+    "gunicorn",
+    "psycopg2-binary",
+    "whitenoise",
+    "pytest",
+    "pytest-django",
+    "pytest-cov",
+    "Faker",
+    "mypy",
+    "django-stubs",
+    "djangorestframework-stubs",
+    "types-redis",
+    "types-requests",
+    "ruff",
+    "black",
+    "isort",
+    "pre-commit",
+    "pip-audit",
+    "safety",
+    "vulture",
+    "deptry",
+    "interrogate",
+    "djlint",
+    "radon",
+    "xenon",
+]
+# DEP003: These ARE direct dependencies, not transitive (deptry false positive)
+DEP003 = [
+    "django",
+    "rest_framework",
+    "django_filters",
+    "decouple",
+    "drf_spectacular",
+    "requests",
+    "rest_framework_simplejwt",
+]
+
+# ============================================================================
+# DJLINT - Django Template Linter
+# ============================================================================
+
+[tool.djlint]
+profile = "django"
+indent = 2
+max_line_length = 120
+ignore = "H006,H030,H031"
+exclude = "htmlcov/,staticfiles/,migrations/,.venv/,venv/"
+
+# ============================================================================
+# RADON - Code Complexity
+# ============================================================================
+# Usage: radon cc . -a -s (complexity), radon mi . -s (maintainability)
+# Xenon enforces complexity thresholds
 
 # ============================================================================
 # PRE-COMMIT HOOKS CONFIG (reference)

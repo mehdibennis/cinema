@@ -29,7 +29,7 @@ class HasFilmFilter(admin.SimpleListFilter):
     title = "A des films"
     parameter_name = "has_films"
 
-    def lookups(self, request, model_admin):
+    def lookups(self, request, _model_admin):
         return (
             ("yes", "Oui"),
             ("no", "Non"),
