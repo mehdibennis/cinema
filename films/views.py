@@ -69,6 +69,7 @@ class FilmViewSet(viewsets.ModelViewSet):
         """
         Custom endpoint to archive a film.
         """
+        _ = pk  # Suppress dead code warning
         film = self.get_object()
         film.status = "archived"
         film.save()

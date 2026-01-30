@@ -1,11 +1,11 @@
 -r requirements.prod.txt
 
 # Core Django (version pinning)
-Django==4.2.5
-djangorestframework-simplejwt==5.2.2
-psycopg2-binary==2.9.6
-gunicorn==20.1.0
-drf-spectacular==0.29.0
+Django>=4.2.17,<5.0
+djangorestframework-simplejwt>=5.3.1
+psycopg2-binary>=2.9.6
+gunicorn>=22.0.0
+drf-spectacular>=0.29.0
 dj_database_url>=1.0.0
 
 # Testing
@@ -30,6 +30,18 @@ ruff>=0.8.0
 black>=24.10.0
 isort>=5.13.0
 bandit>=1.7.5
+
+# Security scanning
+pip-audit>=2.7.0
+safety>=3.2.0
+
+# Code quality & maintenance
+vulture>=2.11
+deptry>=0.16.0
+interrogate>=1.7.0
+djlint>=1.34.0
+radon>=6.0.1
+xenon>=0.9.1
 
 # Debug & Development
 ipython>=8.14.0

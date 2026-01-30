@@ -11,7 +11,7 @@ class IsAdminOrReadOnly(permissions.BasePermission):
     - POST, PUT, PATCH, DELETE: reserved for administrators (is_staff)
     """
 
-    def has_permission(self, request, view):
+    def has_permission(self, request, _view):
         if request.method in permissions.SAFE_METHODS:
             return True
         return request.user and request.user.is_staff
